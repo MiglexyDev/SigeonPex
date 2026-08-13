@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sigeon Pex Simulator by Goonland Studios - itch.io</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Lato", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      background: #1b1b1b;
+      color: #eeeeee;
+      line-height: 1.5;
+    }
+    a { color: #fa5c5c; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Top bar */
+    .topbar {
+      background: #222;
+      border-bottom: 1px solid #333;
+      padding: 0 20px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      font-size: 22px;
+      font-weight: 900;
+      color: #fa5c5c;
+      letter-spacing: -0.5px;
+    }
+    .logo span { color: #fff; }
+    .topbar-nav { display: flex; gap: 20px; font-size: 14px; }
+    .topbar-nav a { color: #ccc; }
+    .topbar-nav a:hover { color: #fff; text-decoration: none; }
+    .search-box {
+      background: #333;
+      border: 1px solid #444;
+      border-radius: 3px;
+      padding: 6px 12px;
+      color: #eee;
+      width: 200px;
+      font-size: 13px;
+    }
+
+    /* Main layout */
+    .page-wrapper {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 30px 20px 60px;
+    }
+    .game-header {
+      display: flex;
+      gap: 30px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+    .cover {
+      width: 315px;
+      height: 250px;
+      object-fit: cover;
+      border-radius: 4px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      background: #333;
+    }
+    .game-info {
+      flex: 1;
+      min-width: 280px;
+    }
+    .game-title {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #fff;
+    }
+    .byline {
+      font-size: 15px;
+      color: #aaa;
+      margin-bottom: 16px;
+    }
+    .byline a { color: #fa5c5c; }
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 18px;
+    }
+    .tag {
+      background: #333;
+      color: #ccc;
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 3px;
+    }
+    .tag:hover { background: #444; }
+    .short-desc {
+      font-size: 15px;
+      color: #ccc;
+      margin-bottom: 20px;
+      max-width: 500px;
+    }
+    .meta-row {
+      display: flex;
+      gap: 25px;
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 20px;
+    }
+    .meta-row strong { color: #ccc; }
+
+    /* Download box */
+    .download-box {
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      border-radius: 6px;
+      padding: 20px;
+      margin-top: 10px;
+    }
+    .download-label {
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .btn-download {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #fa5c5c;
+      color: #fff !important;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 12px 28px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none !important;
+      transition: background 0.15s;
+    }
+    .btn-download:hover {
+      background: #e04b4b;
+      text-decoration: none !important;
+    }
+    .btn-download svg { width: 18px; height: 18px; fill: currentColor; }
+    .file-info {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #888;
+    }
+
+    /* Description */
+    .content-columns {
+      display: flex;
+      gap: 40px;
+      margin-top: 40px;
+    }
+    .main-col { flex: 1; min-width: 0; }
+    .side-col { width: 280px; flex-shrink: 0; }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #333;
+    }
+    .description p {
+      margin-bottom: 14px;
+      color: #ccc;
+      font-size: 15px;
+    }
+    .description h3 {
+      color: #fff;
+      font-size: 16px;
+      margin: 22px 0 10px;
+    }
+    .description ul {
+      margin: 10px 0 14px 20px;
+      color: #ccc;
+    }
+    .description li { margin-bottom: 6px; }
+
+    .screenshot-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .screenshot-grid img {
+      width: 100%;
+      border-radius: 4px;
+      background: #333;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+    }
+
+    /* Sidebar */
+    .side-box {
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      border-radius: 6px;
+      padding: 16px;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+    .side-box h4 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #888;
+      margin-bottom: 10px;
+    }
+    .side-box p, .side-box li { color: #bbb; margin-bottom: 6px; }
+    .rating {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 20px;
+      color: #fa5c5c;
+    }
+
+    .footer {
+      margin-top: 60px;
+      padding-top: 30px;
+      border-top: 1px solid #333;
+      text-align: center;
+      font-size: 13px;
+      color: #666;
+    }
+
+    @media (max-width: 800px) {
+      .game-header { flex-direction: column; align-items: center; text-align: center; }
+      .content-columns { flex-direction: column; }
+      .side-col { width: 100%; }
+      .cover { width: 100%; max-width: 315px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="logo">itch<span>.io</span></div>
+    <div class="topbar-nav">
+      <a href="#">Browse</a>
+      <a href="#">Game Jams</a>
+      <a href="#">Upload</a>
+      <a href="#">Dashboard</a>
+    </div>
+    <input type="text" class="search-box" placeholder="Search games..." disabled>
+  </div>
+
+  <div class="page-wrapper">
+    <div class="game-header">
+      <img src="sigeon_pex_cover.jpg" alt="Sigeon Pex Simulator Cover" class="cover">
+      <div class="game-info">
+        <h1 class="game-title">Sigeon Pex Simulator</h1>
+        <div class="byline">by <a href="#">Goonland Studios</a></div>
+        <div class="tags">
+          <span class="tag">Simulation</span>
+          <span class="tag">Comedy</span>
+          <span class="tag">Brainrot</span>
+          <span class="tag">Singleplayer</span>
+          <span class="tag">Free</span>
+        </div>
+        <p class="short-desc">
+          Become the legendary Sigeon Pex — the ultimate gooning bird. Strut through hallways, diagnose patients, and live the sigma pigeon grindset in this absurdist life simulator.
+        </p>
+        <div class="meta-row">
+          <div><strong>Status:</strong> Released</div>
+          <div><strong>Platforms:</strong> Windows, macOS, Linux, Web</div>
+          <div><strong>Rating:</strong> 4.8 ★ (1,247)</div>
+        </div>
+
+        <div class="download-box">
+          <div class="download-label">Download</div>
+          <a href="#" class="btn-download" id="download-btn">
+            <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            Download Now
+          </a>
+          <div class="file-info">
+            SigeonPexSimulator_v1.3.zip · 248 MB · Free
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-columns">
+      <div class="main-col">
+        <h2 class="section-title">About this game</h2>
+        <div class="description">
+          <p>
+            <strong>Sigeon Pex Simulator</strong> is the ultimate brainrot experience. You play as the iconic anthropomorphic pigeon doctor — the one and only Sigeon Pex — navigating surreal corridors, performing "examinations", and spreading pure chaos across Goonland.
+          </p>
+          <p>
+            Born from the legendary TikTok brainrot meme (a playful spoonerism of "pigeon sex"), this game puts you in the polished shoes (and lab coat) of the Pigeon Doctor himself. Strut with confidence. Diagnose with zero medical knowledge. Say the phrase.
+          </p>
+
+          <h3>Features</h3>
+          <ul>
+            <li>Fully realized Sigeon Pex character with authentic AI-generated vibes</li>
+            <li>Endless hallway strutting & sigma grindset mechanics</li>
+            <li>Patient reaction system featuring the classic "Ahh doctor! Nooo phukkkk" audio</li>
+            <li>Unlockable outfits: classic lab coat, yellow boots, pure goon mode</li>
+            <li>Goonland open world with multiple absurd locations</li>
+            <li>New Game+ : Sennis Tex mode</li>
+          </ul>
+
+          <h3>Controls</h3>
+          <p>
+            WASD to move · Mouse to look · Left Click to examine · Space to coo · G to goon
+          </p>
+
+          <p style="margin-top: 24px; color: #888; font-size: 13px;">
+            This is a fan-made parody / meme game inspired by the Sigeon Pex internet phenomenon. Not affiliated with any real medical professionals or actual pigeons.
+          </p>
+        </div>
+      </div>
+
+      <div class="side-col">
+        <div class="side-box">
+          <h4>Rating</h4>
+          <div class="rating">★★★★★ <span style="font-size:14px;color:#ccc;">4.8</span></div>
+          <p style="margin-top:8px;">1,247 ratings</p>
+        </div>
+        <div class="side-box">
+          <h4>Updated</h4>
+          <p>Aug 8, 2026</p>
+        </div>
+        <div class="side-box">
+          <h4>Published</h4>
+          <p>Feb 14, 2026</p>
+        </div>
+        <div class="side-box">
+          <h4>Genre</h4>
+          <p>Simulation, Comedy, Meme</p>
+        </div>
+        <div class="side-box">
+          <h4>Tags</h4>
+          <p>pigeon, brainrot, sigma, doctor, gooning, absurdist, singleplayer, free</p>
+        </div>
+        <div class="side-box">
+          <h4>Made with</h4>
+          <p>Unity, pure chaos</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>© itch.io · This page is not affiliated with the real itch.io</p>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('download-btn').addEventListener('click', function(e) {
+      e.preventDefault();
+      // 1 em 10 de chance de ir pro void
+      if (Math.random() < 0.1) {
+        window.location.href = 'void.html';
+      } else {
+        window.location.href = 'ratazanas-quentes.html';
+      }
+    });
+  </script>
+</body>
+</html>

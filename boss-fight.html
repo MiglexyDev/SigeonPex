@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>BOSS FIGHT — Pombo Guloso</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000;
+      color: #fff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100%;
+      max-width: 480px;
+      height: 100vh;
+      max-height: 720px;
+      background: linear-gradient(180deg, #0a0a2e 0%, #1a0a3e 40%, #2a1040 100%);
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(255, 50, 100, 0.3);
+    }
+
+    /* Stars background */
+    .star {
+      position: absolute;
+      background: #fff;
+      border-radius: 50%;
+      animation: twinkle 2s infinite alternate;
+    }
+    @keyframes twinkle {
+      from { opacity: 0.3; }
+      to { opacity: 1; }
+    }
+
+    /* HUD */
+    #hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 12px 16px;
+      z-index: 50;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: none;
+    }
+    .hp-bar-container {
+      width: 45%;
+    }
+    .hp-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+    .hp-bar {
+      height: 14px;
+      background: #222;
+      border: 2px solid #555;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+    .hp-fill {
+      height: 100%;
+      transition: width 0.25s ease-out;
+      border-radius: 2px;
+    }
+    #boss-hp .hp-fill { background: linear-gradient(90deg, #ff2d55, #ff6b35); }
+    #player-hp .hp-fill { background: linear-gradient(90deg, #00e5ff, #00ff88); }
+    .hp-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      text-shadow: 0 0 3px #000;
+    }
+
+    /* Entities */
+    #boss {
+      position: absolute;
+      width: 110px;
+      height: 110px;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      transition: transform 0.08s linear;
+      z-index: 20;
+      filter: drop-shadow(0 0 12px rgba(255, 80, 80, 0.6));
+    }
+    #boss img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      animation: bossBob 1.2s ease-in-out infinite;
+    }
+    @keyframes bossBob {
+      0%, 100% { transform: translateY(0) rotate(-2deg); }
+      50% { transform: translateY(-8px) rotate(2deg); }
+    }
+    #boss.hit {
+      animation: bossHit 0.2s ease;
+      filter: brightness(2) drop-shadow(0 0 20px #fff);
+    }
+    @keyframes bossHit {
+      0%, 100% { transform: translateX(-50%) scale(1); }
+      50% { transform: translateX(-50%) scale(1.15); }
+    }
+
+    #player {
+      position: absolute;
+      width: 56px;
+      height: 70px;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 30;
+      transition: left 0.05s linear;
+    }
+    #player img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 0 8px rgba(0, 200, 255, 0.7));
+      animation: playerFloat 0.8s ease-in-out infinite;
+    }
+    @keyframes playerFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    #player.hit {
+      animation: playerHit 0.3s ease;
+    }
+    @keyframes playerHit {
+      0%, 100% { opacity: 1; }
+      25%, 75% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    /* Projectiles */
+    .bullet {
+      position: absolute;
+      width: 8px;
+      height: 18px;
+      background: linear-gradient(180deg, #00ffff, #0088ff);
+      border-radius: 4px;
+      box-shadow: 0 0 10px #0ff, 0 0 20px #0af;
+      z-index: 25;
+    }
+    .enemy-bullet {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: radial-gradient(circle, #ffee00, #ff4400);
+      border-radius: 50%;
+      box-shadow: 0 0 12px #f80, 0 0 24px #f40;
+      z-index: 25;
+    }
+    .egg-bullet {
+      position: absolute;
+      width: 16px;
+      height: 20px;
+      background: radial-gradient(ellipse at 30% 30%, #fff8e0, #f0c060);
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+      box-shadow: 0 0 8px rgba(255, 200, 50, 0.8);
+      z-index: 25;
+    }
+
+    /* Particles */
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 40;
+    }
+
+    /* UI overlays */
+    #start-screen, #victory-screen, #defeat-screen {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      text-align: center;
+      padding: 20px;
+    }
+    #victory-screen {
+      background: rgba(0,0,0,0.9);
+      transform: translateY(100%);
+      opacity: 0;
+      transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.6s ease;
+    }
+    #victory-screen.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    #start-screen h1 {
+      font-size: 28px;
+      color: #ff2d55;
+      text-shadow: 0 0 20px #ff2d55;
+      margin-bottom: 8px;
+      animation: pulseTitle 1.5s ease-in-out infinite;
+    }
+    @keyframes pulseTitle {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    #start-screen p {
+      color: #ccc;
+      font-size: 14px;
+      margin-bottom: 6px;
+      max-width: 320px;
+    }
+    .boss-preview {
+      width: 140px;
+      margin: 16px 0;
+      filter: drop-shadow(0 0 15px rgba(255,80,80,0.5));
+      animation: bossBob 1.5s ease-in-out infinite;
+    }
+    .btn {
+      margin-top: 20px;
+      padding: 14px 36px;
+      font-size: 18px;
+      font-weight: 800;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      background: linear-gradient(180deg, #ff4d6d, #e6003a);
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(255,45,85,0.5);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn:hover {
+      transform: scale(1.06);
+      box-shadow: 0 8px 28px rgba(255,45,85,0.7);
+    }
+    .btn-secondary {
+      background: linear-gradient(180deg, #00c8ff, #0077cc);
+      box-shadow: 0 6px 20px rgba(0,150,255,0.4);
+    }
+
+    #victory-screen h1 {
+      font-size: 32px;
+      color: #00ff88;
+      text-shadow: 0 0 25px #00ff88;
+      margin-bottom: 12px;
+    }
+    #defeat-screen h1 {
+      font-size: 28px;
+      color: #ff2d55;
+      text-shadow: 0 0 20px #ff2d55;
+      margin-bottom: 12px;
+    }
+
+    /* Controls hint */
+    #controls-hint {
+      position: absolute;
+      bottom: 8px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 11px;
+      color: #666;
+      z-index: 40;
+      pointer-events: none;
+    }
+
+    /* Mobile touch controls */
+    #touch-left, #touch-right, #touch-shoot {
+      position: absolute;
+      bottom: 0;
+      height: 100px;
+      z-index: 60;
+      opacity: 0.15;
+      background: #fff;
+      display: none;
+    }
+    #touch-left { left: 0; width: 30%; }
+    #touch-right { left: 30%; width: 30%; }
+    #touch-shoot { right: 0; width: 40%; background: #ff2d55; }
+
+    @media (max-width: 600px) {
+      #touch-left, #touch-right, #touch-shoot { display: block; }
+      #controls-hint { display: none; }
+    }
+
+    /* Damage numbers */
+    .dmg-num {
+      position: absolute;
+      font-weight: 900;
+      font-size: 16px;
+      color: #ffee00;
+      text-shadow: 0 0 6px #f80;
+      pointer-events: none;
+      z-index: 45;
+      animation: floatDmg 0.8s ease-out forwards;
+    }
+    @keyframes floatDmg {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-40px) scale(1.3); }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <!-- Stars will be generated by JS -->
+
+    <div id="hud">
+      <div class="hp-bar-container" id="boss-hp">
+        <div class="hp-label" style="color:#ff6b6b;">Pombo Guloso</div>
+        <div class="hp-bar">
+          <div class="hp-fill" id="boss-hp-fill" style="width:100%"></div>
+          <div class="hp-text" id="boss-hp-text">100 / 100</div>
+        </div>
+      </div>
+      <div class="hp-bar-container" id="player-hp" style="text-align:right;">
+        <div class="hp-label" style="color:#00e5ff;">Você</div>
+        <div class="hp-bar">
+          <div class="hp-fill" id="player-hp-fill" style="width:100%"></div>
+          <div class="hp-text" id="player-hp-text">5 / 5</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="boss">
+      <img src="boss_pombo.png" alt="Pombo Guloso">
+    </div>
+
+    <div id="player">
+      <img src="player_rocket.png" alt="Rocket">
+    </div>
+
+    <div id="controls-hint">
+      ← → ou A D para mover · ESPAÇO / CLIQUE para atirar
+    </div>
+
+    <!-- Touch areas -->
+    <div id="touch-left"></div>
+    <div id="touch-right"></div>
+    <div id="touch-shoot"></div>
+
+    <!-- Screens -->
+    <div id="start-screen">
+      <h1>BOSS FIGHT</h1>
+      <p style="color:#ff6b6b; font-weight:700; font-size:18px;">POMBO GULOSO</p>
+      <img src="boss_pombo.png" class="boss-preview" alt="Boss">
+      <p>O pombo mais guloso de Goonland apareceu no vaso!</p>
+      <p>Derrote-o para ver mais da Jane Doe...</p>
+      <p style="font-size:12px; color:#888; margin-top:10px;">
+        Controles: Setas / A D + Espaço<br>
+        (ou toque na tela no celular)
+      </p>
+      <button class="btn" id="start-btn">COMEÇAR BATALHA</button>
+    </div>
+
+    <div id="victory-screen" style="display:none;">
+      <h1>VITÓRIA!</h1>
+      <p style="font-size:18px; margin-bottom:8px;">Você derrotou o Pombo Guloso!</p>
+      <p style="color:#aaa; margin-bottom:20px;">Agora você pode ver mais dela...</p>
+      <button class="btn" id="rickroll-btn">Ver mais da Jane ❤️</button>
+    </div>
+
+    <div id="defeat-screen" style="display:none;">
+      <h1>DERROTA...</h1>
+      <p style="margin-bottom:8px;">O pombo te engoliu com a gulodice dele.</p>
+      <p style="color:#aaa; margin-bottom:20px;">Tente de novo!</p>
+      <button class="btn btn-secondary" id="retry-btn">TENTAR NOVAMENTE</button>
+    </div>
+  </div>
+
+  <audio id="bgm" src="battle_music.mp3" loop preload="auto"></audio>
+  <audio id="death-sfx" src="boss_death.mp3" preload="auto"></audio>
+
+  <script>
+    // ========== CONFIG ==========
+    const BOSS_MAX_HP = 60;
+    const PLAYER_MAX_HP = 8;
+    const PLAYER_SPEED = 8;
+    const BULLET_SPEED = 14;
+    const ENEMY_BULLET_SPEED = 3.2;
+    const SHOOT_COOLDOWN = 140; // ms
+    const BOSS_MOVE_SPEED = 2.2;
+
+    // ========== STATE ==========
+    let gameRunning = false;
+    let bossHP = BOSS_MAX_HP;
+    let playerHP = PLAYER_MAX_HP;
+    let playerX = 0; // relative to container
+    let bossX = 0;
+    let bossDir = 1;
+    let lastShot = 0;
+    let keys = {};
+    let bullets = [];
+    let enemyBullets = [];
+    let particles = [];
+    let animId = null;
+    let bossPhase = 1; // 1 or 2
+    let lastEnemyShot = 0;
+    let containerRect = null;
+
+    // ========== DOM ==========
+    const container = document.getElementById('game-container');
+    const bossEl = document.getElementById('boss');
+    const playerEl = document.getElementById('player');
+    const bossHpFill = document.getElementById('boss-hp-fill');
+    const bossHpText = document.getElementById('boss-hp-text');
+    const playerHpFill = document.getElementById('player-hp-fill');
+    const playerHpText = document.getElementById('player-hp-text');
+    const startScreen = document.getElementById('start-screen');
+    const victoryScreen = document.getElementById('victory-screen');
+    const defeatScreen = document.getElementById('defeat-screen');
+    const bgm = document.getElementById('bgm');
+
+    // ========== STARS ==========
+    function createStars() {
+      for (let i = 0; i < 60; i++) {
+        const s = document.createElement('div');
+        s.className = 'star';
+        const size = Math.random() * 2.5 + 0.5;
+        s.style.width = size + 'px';
+        s.style.height = size + 'px';
+        s.style.left = Math.random() * 100 + '%';
+        s.style.top = Math.random() * 100 + '%';
+        s.style.animationDelay = Math.random() * 2 + 's';
+        container.appendChild(s);
+      }
+    }
+    createStars();
+
+    // ========== INIT POSITIONS ==========
+    function updateContainerRect() {
+      containerRect = container.getBoundingClientRect();
+      playerX = containerRect.width / 2 - 28;
+      bossX = containerRect.width / 2 - 55;
+      playerEl.style.left = playerX + 'px';
+      bossEl.style.left = bossX + 'px';
+      bossEl.style.transform = 'none';
+    }
+    updateContainerRect();
+    window.addEventListener('resize', () => {
+      updateContainerRect();
+    });
+
+    // ========== INPUT ==========
+    window.addEventListener('keydown', e => {
+      keys[e.code] = true;
+      if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space','KeyA','KeyD'].includes(e.code)) {
+        e.preventDefault();
+      }
+    });
+    window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+    // Mouse / touch shoot
+    container.addEventListener('mousedown', (e) => {
+      if (gameRunning && e.target.id !== 'start-btn' && e.target.id !== 'rickroll-btn' && e.target.id !== 'retry-btn') {
+        shoot();
+      }
+    });
+
+    // Touch controls
+    const touchLeft = document.getElementById('touch-left');
+    const touchRight = document.getElementById('touch-right');
+    const touchShoot = document.getElementById('touch-shoot');
+    let touchingLeft = false, touchingRight = false;
+
+    touchLeft.addEventListener('touchstart', e => { e.preventDefault(); touchingLeft = true; });
+    touchLeft.addEventListener('touchend', () => touchingLeft = false);
+    touchRight.addEventListener('touchstart', e => { e.preventDefault(); touchingRight = true; });
+    touchRight.addEventListener('touchend', () => touchingRight = false);
+    touchShoot.addEventListener('touchstart', e => { e.preventDefault(); shoot(); });
+
+    // ========== SHOOT ==========
+    function shoot() {
+      if (!gameRunning) return;
+      const now = performance.now();
+      if (now - lastShot < SHOOT_COOLDOWN) return;
+      lastShot = now;
+
+      const b = document.createElement('div');
+      b.className = 'bullet';
+      const bx = playerX + 24;
+      const by = containerRect.height - 110;
+      b.style.left = bx + 'px';
+      b.style.top = by + 'px';
+      container.appendChild(b);
+      bullets.push({ el: b, x: bx, y: by });
+    }
+
+    // ========== PARTICLES ==========
+    function spawnParticles(x, y, color, count = 8) {
+      for (let i = 0; i < count; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        const size = Math.random() * 6 + 3;
+        p.style.width = size + 'px';
+        p.style.height = size + 'px';
+        p.style.background = color;
+        p.style.left = x + 'px';
+        p.style.top = y + 'px';
+        container.appendChild(p);
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 4 + 2;
+        particles.push({
+          el: p,
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 30 + Math.random() * 20
+        });
+      }
+    }
+
+    function spawnDmgNum(x, y, dmg) {
+      const d = document.createElement('div');
+      d.className = 'dmg-num';
+      d.textContent = '-' + dmg;
+      d.style.left = x + 'px';
+      d.style.top = y + 'px';
+      container.appendChild(d);
+      setTimeout(() => d.remove(), 800);
+    }
+
+    // ========== BOSS ATTACK PATTERNS ==========
+    function bossShoot() {
+      if (!gameRunning) return;
+      const now = performance.now();
+      const interval = bossPhase === 1 ? 1100 : 750;
+      if (now - lastEnemyShot < interval) return;
+      lastEnemyShot = now;
+
+      const bx = bossX + 55;
+      const by = 180;
+
+      // Pattern depends on phase (nerfed)
+      if (bossPhase === 1) {
+        // 3 eggs in a small spread
+        for (let i = -1; i <= 1; i++) {
+          createEnemyBullet(bx, by, i * 1.5, ENEMY_BULLET_SPEED + 0.3, true);
+        }
+      } else {
+        // Phase 2: fan of 3 + one aimed (less dense)
+        for (let i = -1; i <= 1; i++) {
+          createEnemyBullet(bx, by, i * 2.0, ENEMY_BULLET_SPEED + 0.6, true);
+        }
+        // Aimed at player (slower)
+        const dx = (playerX + 28) - bx;
+        const dy = (containerRect.height - 80) - by;
+        const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        createEnemyBullet(bx, by, (dx / dist) * 2.8, (dy / dist) * 2.8 + 1.5, false);
+      }
+    }
+
+    function createEnemyBullet(x, y, vx, vy, isEgg) {
+      const b = document.createElement('div');
+      b.className = isEgg ? 'egg-bullet' : 'enemy-bullet';
+      b.style.left = x + 'px';
+      b.style.top = y + 'px';
+      container.appendChild(b);
+      enemyBullets.push({ el: b, x, y, vx, vy });
+    }
+
+    // ========== UPDATE ==========
+    function update() {
+      if (!gameRunning) return;
+
+      // Player movement
+      let move = 0;
+      if (keys['ArrowLeft'] || keys['KeyA'] || touchingLeft) move -= 1;
+      if (keys['ArrowRight'] || keys['KeyD'] || touchingRight) move += 1;
+      playerX += move * PLAYER_SPEED;
+      playerX = Math.max(0, Math.min(containerRect.width - 56, playerX));
+      playerEl.style.left = playerX + 'px';
+
+      // Shoot with space
+      if (keys['Space']) shoot();
+
+      // Boss movement
+      bossX += bossDir * BOSS_MOVE_SPEED * (bossPhase === 2 ? 1.4 : 1);
+      if (bossX < 10) { bossX = 10; bossDir = 1; }
+      if (bossX > containerRect.width - 120) { bossX = containerRect.width - 120; bossDir = -1; }
+      bossEl.style.left = bossX + 'px';
+
+      // Boss attack
+      bossShoot();
+
+      // Player bullets
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.y -= BULLET_SPEED;
+        b.el.style.top = b.y + 'px';
+
+        // Hit boss?
+        if (b.y < 190 && b.y > 70 &&
+            b.x > bossX - 5 && b.x < bossX + 110) {
+          // Hit!
+          const dmg = bossPhase === 2 ? 4 : 5;
+          bossHP = Math.max(0, bossHP - dmg);
+          updateBossHP();
+          spawnParticles(b.x, b.y, '#00ffff', 6);
+          spawnDmgNum(b.x - 10, b.y - 20, dmg);
+          bossEl.classList.add('hit');
+          setTimeout(() => bossEl.classList.remove('hit'), 200);
+          b.el.remove();
+          bullets.splice(i, 1);
+
+          if (bossHP <= 30 && bossPhase === 1) {
+            bossPhase = 2;
+            // Visual feedback for phase change
+            spawnParticles(bossX + 55, 130, '#ff2d55', 20);
+          }
+
+          if (bossHP <= 0) {
+            win();
+            return;
+          }
+          continue;
+        }
+
+        if (b.y < -20) {
+          b.el.remove();
+          bullets.splice(i, 1);
+        }
+      }
+
+      // Enemy bullets
+      for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        const b = enemyBullets[i];
+        b.x += b.vx;
+        b.y += b.vy;
+        b.el.style.left = b.x + 'px';
+        b.el.style.top = b.y + 'px';
+
+        // Hit player?
+        if (b.y > containerRect.height - 120 && b.y < containerRect.height - 40 &&
+            b.x > playerX - 5 && b.x < playerX + 56) {
+          playerHP--;
+          updatePlayerHP();
+          spawnParticles(playerX + 28, containerRect.height - 80, '#ff2d55', 10);
+          playerEl.classList.add('hit');
+          setTimeout(() => playerEl.classList.remove('hit'), 300);
+          b.el.remove();
+          enemyBullets.splice(i, 1);
+
+          if (playerHP <= 0) {
+            lose();
+            return;
+          }
+          continue;
+        }
+
+        if (b.y > containerRect.height + 30 || b.x < -30 || b.x > containerRect.width + 30) {
+          b.el.remove();
+          enemyBullets.splice(i, 1);
+        }
+      }
+
+      // Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.15; // gravity
+        p.life--;
+        p.el.style.left = p.x + 'px';
+        p.el.style.top = p.y + 'px';
+        p.el.style.opacity = Math.max(0, p.life / 40);
+        if (p.life <= 0) {
+          p.el.remove();
+          particles.splice(i, 1);
+        }
+      }
+
+      animId = requestAnimationFrame(update);
+    }
+
+    function updateBossHP() {
+      const pct = (bossHP / BOSS_MAX_HP) * 100;
+      bossHpFill.style.width = pct + '%';
+      bossHpText.textContent = bossHP + ' / ' + BOSS_MAX_HP;
+    }
+    function updatePlayerHP() {
+      const pct = (playerHP / PLAYER_MAX_HP) * 100;
+      playerHpFill.style.width = pct + '%';
+      playerHpText.textContent = playerHP + ' / ' + PLAYER_MAX_HP;
+    }
+
+    // ========== GAME FLOW ==========
+    function startGame() {
+      // Reset
+      bossHP = BOSS_MAX_HP;
+      playerHP = PLAYER_MAX_HP;
+      bossPhase = 1;
+      lastShot = 0;
+      lastEnemyShot = 0;
+      bullets.forEach(b => b.el.remove());
+      enemyBullets.forEach(b => b.el.remove());
+      particles.forEach(p => p.el.remove());
+      bullets = [];
+      enemyBullets = [];
+      particles = [];
+      updateBossHP();
+      updatePlayerHP();
+      updateContainerRect();
+
+      startScreen.style.display = 'none';
+      victoryScreen.style.display = 'none';
+      victoryScreen.classList.remove('show');
+      defeatScreen.style.display = 'none';
+      bossEl.style.opacity = '1';
+      bossEl.style.transform = '';
+      bossEl.style.transition = '';
+      gameRunning = true;
+
+      // Music
+      bgm.currentTime = 0;
+      bgm.volume = 0.55;
+      bgm.play().catch(() => {});
+
+      animId = requestAnimationFrame(update);
+    }
+
+    function win() {
+      gameRunning = false;
+      cancelAnimationFrame(animId);
+      bullets.forEach(b => b.el.remove());
+      enemyBullets.forEach(b => b.el.remove());
+
+      // Big multi-wave explosion
+      const cx = bossX + 55;
+      const cy = 130;
+      spawnParticles(cx, cy, '#ffee00', 40);
+      spawnParticles(cx, cy, '#ff2d55', 30);
+      spawnParticles(cx, cy, '#ffffff', 20);
+      setTimeout(() => {
+        spawnParticles(cx, cy, '#ff8800', 25);
+        spawnParticles(cx, cy, '#ffee00', 15);
+      }, 150);
+      setTimeout(() => {
+        spawnParticles(cx, cy, '#ff2d55', 20);
+      }, 300);
+
+      // Hide boss with scale + fade
+      bossEl.style.transition = 'transform 0.4s ease, opacity 0.4s ease';
+      bossEl.style.transform = 'scale(1.6)';
+      bossEl.style.opacity = '0';
+
+      // Play death sound ("que feia, é o Dr.")
+      const deathSfx = document.getElementById('death-sfx');
+      deathSfx.currentTime = 0;
+      deathSfx.volume = 1;
+      deathSfx.play().catch(() => {});
+
+      // Fade out battle music a bit
+      bgm.volume = 0.25;
+
+      // Wait ~5 seconds then slide victory HUD up from bottom
+      setTimeout(() => {
+        victoryScreen.style.display = 'flex';
+        // Force reflow then add class for slide animation
+        void victoryScreen.offsetWidth;
+        victoryScreen.classList.add('show');
+      }, 5000);
+    }
+
+    function lose() {
+      gameRunning = false;
+      cancelAnimationFrame(animId);
+      bgm.pause();
+      defeatScreen.style.display = 'flex';
+    }
+
+    // ========== BUTTONS ==========
+    document.getElementById('start-btn').addEventListener('click', startGame);
+    document.getElementById('retry-btn').addEventListener('click', () => {
+      bossEl.style.opacity = '1';
+      bossEl.style.transform = '';
+      bossEl.style.transition = '';
+      victoryScreen.classList.remove('show');
+      victoryScreen.style.display = 'none';
+      defeatScreen.style.display = 'none';
+      startScreen.style.display = 'flex';
+    });
+    document.getElementById('rickroll-btn').addEventListener('click', () => {
+      bgm.pause();
+      window.location.href = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+    });
+  </script>
+</body>
+</html>
